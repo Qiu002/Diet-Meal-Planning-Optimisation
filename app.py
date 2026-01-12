@@ -2,13 +2,16 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import random
+import matplotlib.pyplot as plt
 
 # -----------------------------------
 # Load Data
 # -----------------------------------
 @st.cache_data
 def load_data():
-    return pd.read_csv("Food_and_Nutrition_with_Price.csv")
+    df = pd.read_csv("Food_and_Nutrition_with_Price.csv")
+    df.columns = df.columns.str.strip()
+    return df
 
 data = load_data()
 
@@ -19,16 +22,16 @@ st.sidebar.header("Nutrition Constraints")
 
 min_calories = st.sidebar.slider("Minimum Calories", 1000, 3000, 2000)
 min_protein = st.sidebar.slider("Minimum Protein (g)", 30, 200, 80)
-max_fat = st.sidebar.slider("Maximum Fat (g)", 20, 150, 70)
+max_fat = st.sidebar.slider("Maximum Fat (g)", 20, 150, 80)
 
 st.sidebar.header("Genetic Algorithm Parameters")
 
-population_size = st.sidebar.slider("Population Size", 20, 300, 100)
-generations = st.sidebar.slider("Generations", 50, 500, 200)
-mutation_rate = st.sidebar.slider("Mutation Rate", 0.01, 0.5, 0.05)
+population_size = st.sidebar.slider("Population Size", 50, 200, 100)
+generations = st.sidebar.slider("Generations", 100, 400, 200)
+mutation_rate = st.sidebar.slider("Mutation Rate", 0.01, 0.3, 0.05)
 
 # -----------------------------------
-# Genetic Algorithm Functions
+# Genetic Algorithm
 # -----------------------------------
 num_meals = len(data)
 
@@ -36,121 +39,118 @@ def create_individual():
     return np.random.randint(0, 2, num_meals)
 
 def fitness(individual):
-    total_cal = np.sum(individual * data["Calories"])
-    total_pro = np.sum(individual * data["Protein"])
-    total_fat = np.sum(individual * data["Fat"])
-    total_cost = np.sum(individual * data["Price_RM"])
+    selected = data[individual == 1]
+
+    total_cal = selected["Calories"].sum()
+    total_pro = selected["Protein"].sum()
+    total_fat = selected["Fat"].sum()
+    total_cost = selected["Price_RM"].sum()
 
     penalty = 0
+
     if total_cal < min_calories:
-        penalty += (min_calories - total_cal) * 10
+        penalty += (min_calories - total_cal) * 5
     if total_pro < min_protein:
-        penalty += (min_protein - total_pro) * 10
+        penalty += (min_protein - total_pro) * 5
     if total_fat > max_fat:
-        penalty += (total_fat - max_fat) * 10
+        penalty += (total_fat - max_fat) * 5
+
+    # Encourage meal diversity
+    for meal in ["Breakfast", "Lunch", "Dinner", "Snack"]:
+        if meal not in selected["Meal_Type"].values:
+            penalty += 20
 
     return total_cost + penalty
 
-def selection(population):
-    return min(random.sample(population, 3), key=fitness)
+def selection(pop):
+    return min(random.sample(pop, 3), key=fitness)
 
-def crossover(parent1, parent2):
+def crossover(p1, p2):
     point = random.randint(1, num_meals - 1)
-    return np.concatenate((parent1[:point], parent2[point:]))
+    return np.concatenate((p1[:point], p2[point:]))
 
-def mutation(individual):
+def mutation(ind):
     for i in range(num_meals):
         if random.random() < mutation_rate:
-            individual[i] = 1 - individual[i]
-    return individual
+            ind[i] = 1 - ind[i]
+    return ind
 
-# -----------------------------------
-# Run Genetic Algorithm
-# -----------------------------------
 def run_ga():
     population = [create_individual() for _ in range(population_size)]
-    best_fitness_history = []
-    best_solution = None
+    history = []
 
-    for gen in range(generations):
-        new_population = []
-
+    for _ in range(generations):
+        new_pop = []
         for _ in range(population_size):
-            p1 = selection(population)
-            p2 = selection(population)
-            child = crossover(p1, p2)
-            child = mutation(child)
-            new_population.append(child)
-
-        population = new_population
+            p1, p2 = selection(population), selection(population)
+            child = mutation(crossover(p1, p2))
+            new_pop.append(child)
+        population = new_pop
         best = min(population, key=fitness)
-        best_fitness_history.append(fitness(best))
-        best_solution = best
+        history.append(fitness(best))
 
-    return best_solution, best_fitness_history
+    return best, history
 
 # -----------------------------------
-# Run Button
+# UI
 # -----------------------------------
-st.title("🥗 Diet Meal Planning Optimisation using Evolutionary Algorithm")
+st.title("🥗 Diet Meal Planning Optimisation")
 
 if st.button("Run Optimisation"):
-    best_solution, fitness_curve = run_ga()
+    solution, curve = run_ga()
+    plan = data[solution == 1]
 
-    selected_meals = data[best_solution == 1]
-
-    total_calories = selected_meals["Calories"].sum()
-    total_protein = selected_meals["Protein"].sum()
-    total_fat = selected_meals["Fat"].sum()
-    total_cost = selected_meals["Price_RM"].sum()
+    # Totals
+    total_cost = plan["Price_RM"].sum()
+    total_cal = plan["Calories"].sum()
+    total_pro = plan["Protein"].sum()
+    total_fat = plan["Fat"].sum()
 
     # -----------------------------------
-    # Results Display
+    # Summary Results (MATCH IMAGE)
     # -----------------------------------
-    st.subheader("✅ Optimal Meal Plan")
-    st.dataframe(selected_meals)
+    st.subheader("💰 Summary Results")
 
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Calories", f"{total_calories:.1f}")
-    col2.metric("Protein (g)", f"{total_protein:.1f}")
-    col3.metric("Fat (g)", f"{total_fat:.1f}")
-    col4.metric("Total Cost ($)", f"{total_cost:.2f}")
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Total Cost", f"RM {total_cost:.2f}")
+    c2.metric("Total Calories", f"{int(total_cal)} kcal")
+    c3.metric("Total Protein", f"{total_pro:.1f} g")
+    c4.metric("Total Fat", f"{total_fat:.1f} g")
+
+    # -----------------------------------
+    # Personalized Plan
+    # -----------------------------------
+    st.subheader("📋 Your Personalized Plan")
+
+    for meal_type in ["Breakfast", "Lunch", "Dinner", "Snack"]:
+        meal = plan[plan["Meal_Type"] == meal_type]
+        if not meal.empty:
+            m = meal.iloc[0]
+            st.markdown(
+                f"""
+                **{meal_type}: {m['Meal']}**  
+                Price: RM {m['Price_RM']:.2f} |
+                Prot: {m['Protein']}g |
+                Fat: {m['Fat']}g
+                """
+            )
 
     # -----------------------------------
     # Convergence Curve
     # -----------------------------------
-    st.subheader("📉 Convergence Curve")
+    st.subheader("📉 Algorithm Convergence")
 
     fig, ax = plt.subplots()
-    ax.plot(fitness_curve)
+    ax.plot(curve)
     ax.set_xlabel("Generation")
     ax.set_ylabel("Fitness (Cost + Penalty)")
-    ax.set_title("Evolutionary Algorithm Convergence")
-
     st.pyplot(fig)
-
-    # -----------------------------------
-    # Trade-off Visualization
-    # -----------------------------------
-    st.subheader("⚖️ Nutrition vs Cost Trade-off")
-
-    fig2, ax2 = plt.subplots()
-    ax2.scatter(data["Calories"], data["Price"], alpha=0.5, label="All Meals")
-    ax2.scatter(selected_meals["Calories"], selected_meals["Price_RM"],
-                color="red", label="Selected Meals")
-    ax2.set_xlabel("Calories")
-    ax2.set_ylabel("Price_RM")
-    ax2.legend()
-
-    st.pyplot(fig2)
 
 # -----------------------------------
 # Footer
 # -----------------------------------
 st.markdown("""
 ---
-**Evolutionary Diet Optimisation Dashboard**
-- Objective: Minimise cost
-- Constraints: Calories, Protein, Fat
-- Algorithm: Genetic Algorithm
+**Evolutionary Diet Optimisation Dashboard**  
+Objective: Minimise Cost | Constraints: Nutrition | Method: Genetic Algorithm
 """)
