@@ -40,6 +40,8 @@ price_col= get_col(["price", "cost", "price (rm)", "rm", "rm_price"])
 # Show dataset
 # -----------------------------
 st.subheader("📦 Available Meals")
+st.write("Columns in CSV:", df.columns.tolist())
+st.write("Mapped columns:", food_col, cal_col, pro_col, fat_col, price_col)
 st.dataframe(df[[food_col, cal_col, pro_col, fat_col, price_col]])
 
 # -----------------------------
