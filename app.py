@@ -29,9 +29,12 @@ price_col = get_col(["price", "cost", "price (rm)", "rm"])
 
 required = [food_col, cal_col, pro_col, fat_col, price_col]
 
-if any(col is None for col in required):
-    st.error("CSV file is missing required columns: Food, Calories, Protein, Fat, Price.\nPlease rename them accordingly.")
-    st.stop()
+food_col = get_col(["food", "item", "name", "meal", "food_name"])
+cal_col  = get_col(["calories", "energy", "kcal"])
+pro_col  = get_col(["protein", "proteins", "protein_g"])
+fat_col  = get_col(["fat", "total fat", "fat_g"])
+price_col= get_col(["price", "cost", "price (rm)", "rm", "rm_price"])
+
 
 # -----------------------------
 # Show dataset
