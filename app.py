@@ -37,7 +37,7 @@ filtered_df = df[df["Food"].isin(selected_meals)].reset_index(drop=True)
 n_foods = len(filtered_df)
 
 # -----------------------------
-# Evolution Strategies Optimization
+# Fitness function
 # -----------------------------
 def fitness(portions):
     calories = np.sum(portions * filtered_df["Calories"].values)
@@ -45,7 +45,7 @@ def fitness(portions):
     fat = np.sum(portions * filtered_df["Fat"].values)
     cost = np.sum(portions * filtered_df["Price"].values)
 
-    # Penalize if nutritional requirements are not met
+    # Penalty if nutritional requirements not met
     penalty = 0
     if calories < cal_need:
         penalty += (cal_need - calories) * 10
@@ -56,7 +56,10 @@ def fitness(portions):
 
     return cost + penalty
 
-def evolution_strategy(n_generations=500, population_size=50, sigma=0.5):
+# -----------------------------
+# Evolution Strategies
+# -----------------------------
+def evolution_strategy(n_generations=200, population_size=30, sigma=0.7):
     population = np.random.rand(population_size, n_foods) * 2  # initial portions
     for _ in range(n_generations):
         fitness_values = np.array([fitness(ind) for ind in population])
@@ -65,8 +68,11 @@ def evolution_strategy(n_generations=500, population_size=50, sigma=0.5):
         parents = population[fitness_values.argsort()[:num_parents]]
 
         # generate new population by adding noise
-        population = np.array([np.clip(parents[np.random.randint(num_parents)] + np.random.randn(n_foods) * sigma, 0, None) 
-                               for _ in range(population_size)])
+        population = np.array([
+            np.clip(parents[np.random.randint(num_parents)] + np.random.randn(n_foods) * sigma, 0, None)
+            for _ in range(population_size)
+        ])
+
     # return best solution
     fitness_values = np.array([fitness(ind) for ind in population])
     return population[fitness_values.argmin()]
