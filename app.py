@@ -19,8 +19,6 @@ except:
 st.subheader("📦 Uploaded Dataset")
 st.dataframe(df)
 
-st.write("Detected columns:", list(df.columns))
-
 # -----------------------------
 # USER selects column names
 # -----------------------------
