@@ -39,7 +39,7 @@ def fitness(individual):
     total_cal = np.sum(individual * data["Calories"])
     total_pro = np.sum(individual * data["Protein"])
     total_fat = np.sum(individual * data["Fat"])
-    total_cost = np.sum(individual * data["Price"])
+    total_cost = np.sum(individual * data["Price_RM"])
 
     penalty = 0
     if total_cal < min_calories:
@@ -102,7 +102,7 @@ if st.button("Run Optimisation"):
     total_calories = selected_meals["Calories"].sum()
     total_protein = selected_meals["Protein"].sum()
     total_fat = selected_meals["Fat"].sum()
-    total_cost = selected_meals["Price"].sum()
+    total_cost = selected_meals["Price_RM"].sum()
 
     # -----------------------------------
     # Results Display
@@ -139,7 +139,7 @@ if st.button("Run Optimisation"):
     ax2.scatter(selected_meals["Calories"], selected_meals["Price_RM"],
                 color="red", label="Selected Meals")
     ax2.set_xlabel("Calories")
-    ax2.set_ylabel("Price")
+    ax2.set_ylabel("Price_RM")
     ax2.legend()
 
     st.pyplot(fig2)
