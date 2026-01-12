@@ -10,7 +10,7 @@ st.write("This tool finds the **lowest-cost daily meal plan** that still meets b
 # -----------------------------
 # Load dataset
 # -----------------------------
-df = pd.read_csv("Food_and_Nutrition_with_Price.csv")
+df = pd.read_csv("Food_and_Nutrition_with_Price.csv") 
 
 # --------- silently normalize column names ---------
 norm = {c.lower().strip(): c for c in df.columns}
