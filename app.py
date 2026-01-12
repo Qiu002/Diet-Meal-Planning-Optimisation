@@ -43,6 +43,16 @@ fat_need = st.sidebar.number_input("Minimum Fat (g)", value=70, step=5)
 meal_options = df[food_col].tolist()
 selected_meals = st.sidebar.multiselect("Select meals to include", meal_options, default=meal_options)
 
+# -----------------------------
+# ES parameters sliders
+# -----------------------------
+st.sidebar.header("🔧 Evolution Strategies Parameters")
+
+population_size = st.sidebar.slider("Population Size", min_value=10, max_value=200, value=50, step=10)
+n_generations = st.sidebar.slider("Number of Generations", min_value=50, max_value=2000, value=500, step=50)
+sigma = st.sidebar.slider("Mutation Strength (σ)", min_value=0.01, max_value=2.0, value=0.5, step=0.01)
+learning_rate = st.sidebar.slider("Learning Rate (Not used in basic ES)", min_value=0.01, max_value=1.0, value=0.1, step=0.01)
+
 run_button = st.sidebar.button("Optimize Meal Plan")
 
 # -----------------------------
@@ -75,7 +85,7 @@ def fitness(portions):
 
     return cost + penalty
 
-def evolution_strategy(n_generations=500, population_size=50, sigma=0.5, learning_rate=0.1):
+def evolution_strategy(n_generations, population_size, sigma):
     # Initialize random population (portions)
     population = np.random.rand(population_size, n_foods) * 2  # portions between 0 and 2
 
@@ -108,7 +118,7 @@ if run_button:
         st.error("❌ Please select at least one meal to optimize.")
     else:
         with st.spinner("Optimizing meal plan using Evolution Strategies..."):
-            best_portions = evolution_strategy()
+            best_portions = evolution_strategy(n_generations, population_size, sigma)
 
         # Prepare results
         results = []
