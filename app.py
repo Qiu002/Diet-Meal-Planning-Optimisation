@@ -20,17 +20,6 @@ st.subheader("📦 Uploaded Dataset")
 st.dataframe(df)
 
 # -----------------------------
-# USER selects column names
-# -----------------------------
-st.sidebar.header("🧭 Map your column names")
-
-food_col = st.sidebar.selectbox("Select column for FOOD NAME", df.columns)
-cal_col = st.sidebar.selectbox("Select column for CALORIES", df.columns)
-pro_col = st.sidebar.selectbox("Select column for PROTEIN (g)", df.columns)
-fat_col = st.sidebar.selectbox("Select column for FAT (g)", df.columns)
-price_col = st.sidebar.selectbox("Select column for PRICE", df.columns)
-
-# -----------------------------
 # Nutrition requirement inputs
 # -----------------------------
 st.sidebar.header("⚙️ Set Nutrition Requirements")
