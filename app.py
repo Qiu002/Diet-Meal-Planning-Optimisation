@@ -10,8 +10,17 @@ import matplotlib.pyplot as plt
 @st.cache_data
 def load_data():
     df = pd.read_csv("Food_and_Nutrition_with_Price.csv")
-    df.columns = df.columns.str.strip()
+
+    # Normalize column names
+    df.columns = (
+        df.columns
+        .str.strip()
+        .str.lower()
+        .str.replace(" ", "_")
+    )
+
     return df
+
 
 data = load_data()
 
