@@ -136,7 +136,7 @@ if st.button("Run Optimisation"):
 
     fig2, ax2 = plt.subplots()
     ax2.scatter(data["Calories"], data["Price"], alpha=0.5, label="All Meals")
-    ax2.scatter(selected_meals["Calories"], selected_meals["Price"],
+    ax2.scatter(selected_meals["Calories"], selected_meals["Price_RM"],
                 color="red", label="Selected Meals")
     ax2.set_xlabel("Calories")
     ax2.set_ylabel("Price")
