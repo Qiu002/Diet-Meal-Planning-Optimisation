@@ -48,28 +48,25 @@ def create_individual():
     return np.random.randint(0, 2, num_meals)
 
 def fitness(individual):
-    selected = data[individual == 1]
-
-    total_cal = selected["Calories"].sum()
-    total_pro = selected["Protein"].sum()
-    total_fat = selected["Fat"].sum()
-    total_cost = selected["Price_RM"].sum()
+    total_cal = np.sum(individual * data["calories"])
+    total_pro = np.sum(individual * data["protein"])
+    total_fat = np.sum(individual * data["fat"])
+    total_cost = np.sum(individual * data["price_rm"])
 
     penalty = 0
 
     if total_cal < min_calories:
-        penalty += (min_calories - total_cal) * 5
+        penalty += (min_calories - total_cal) * 100
+
     if total_pro < min_protein:
-        penalty += (min_protein - total_pro) * 5
+        penalty += (min_protein - total_pro) * 100
+
     if total_fat > max_fat:
-        penalty += (total_fat - max_fat) * 5
+        penalty += (total_fat - max_fat) * 100
 
-    # Encourage meal diversity
-    for meal in ["Breakfast", "Lunch", "Dinner", "Snack"]:
-        if meal not in selected["Meal_Type"].values:
-            penalty += 20
-
+    # Objective: minimize cost + penalties
     return total_cost + penalty
+
 
 def selection(pop):
     return min(random.sample(pop, 3), key=fitness)
