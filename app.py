@@ -3,7 +3,6 @@ import pandas as pd
 import random
 import numpy as np
 
-# ---------------- App Title ----------------
 st.title("🍽️ Meal-by-Meal Diet Cost Optimizer (Evolution Strategies)")
 st.write("Optimizes daily meal plans at the lowest cost while meeting nutrition requirements.")
 
@@ -15,7 +14,6 @@ if uploaded_file:
     st.subheader("📋 Dataset Preview")
     st.dataframe(data.head())
 
-    # Column names (adjust only if your CSV differs)
     CAL = "Calories"
     PRO = "Protein"
     FAT = "Fat"
@@ -43,7 +41,6 @@ if uploaded_file:
         total_fat = meals[FAT].sum()
 
         penalty = 0
-
         if total_cal < req_cal:
             penalty += (req_cal - total_cal) * 0.05
         if total_pro < req_pro:
@@ -74,45 +71,37 @@ if uploaded_file:
 
             combined = population + offspring
             combined.sort(key=fitness)
-
             population = combined[:pop_size]
 
         return population[0]
 
-    # ---------------- Optimization Button ----------------
+    # ---------------- Optimization ----------------
     if st.button("🚀 Optimize Meal Costs"):
-        best_solution = evolve_meal_plan()
-        meals = data.loc[best_solution].reset_index(drop=True)
+        best = evolve_meal_plan()
+        meals = data.loc[best].reset_index(drop=True)
 
         st.success("Optimization complete!")
 
         st.subheader("🍽️ Optimized Meal Choices")
-
         st.write(f"🍳 **Breakfast:** {meals.loc[0, 'Breakfast Suggestion']} — RM {meals.loc[0, PRICE]:.2f}")
         st.write(f"🍛 **Lunch:** {meals.loc[1, 'Lunch Suggestion']} — RM {meals.loc[1, PRICE]:.2f}")
         st.write(f"🍲 **Dinner:** {meals.loc[2, 'Dinner Suggestion']} — RM {meals.loc[2, PRICE]:.2f}")
         st.write(f"🍪 **Snack:** {meals.loc[3, 'Snack Suggestion']} — RM {meals.loc[3, PRICE]:.2f}")
 
-        # ---------------- Corrected Daily Totals ----------------
-        # Average nutrition across meals to avoid inflated values
-
+        # ---------------- Correct Daily Totals ----------------
         total_cost = meals[PRICE].sum()
+        total_cal = meals[CAL].sum()
+        total_pro = meals[PRO].sum()
+        total_fat = meals[FAT].sum()
 
-        avg_cal = meals[CAL].mean()
-        avg_pro = meals[PRO].mean()
-        avg_fat = meals[FAT].mean()
-
-        # Daily totals = average × 4 meals
-        total_cal = avg_cal * 4
-        total_pro = avg_pro * 4
-        total_fat = avg_fat * 4
+        st.subheader("💰 Total Daily Cost")
+        st.write(f"👉 **RM {total_cost:.2f} per day**")
 
         st.subheader("📊 Daily Nutrition Summary (Combined Meals)")
         st.write(f"🔥 Calories: **{total_cal:.0f} kcal**")
         st.write(f"💪 Protein: **{total_pro:.1f} g**")
         st.write(f"🧈 Fat: **{total_fat:.1f} g**")
 
-        # ---------------- Warnings ----------------
         if total_cal < req_cal:
             st.warning("⚠️ Calories requirement NOT met")
         if total_pro < req_pro:
