@@ -48,8 +48,8 @@ if uploaded_file:
 
             # sort by price only FOR THIS MEAL
     def meal_fitness(i):
-        price = data.loc[i.PRICE]
-        fat = data.loc[i.FAT]
+        price = data.loc[i. PRICE]
+        fat = data.loc[i. FAT]
 
         # Penalize high fat items
         return price + 0.1 * fat
