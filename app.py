@@ -93,16 +93,21 @@ if uploaded_file:
         st.write(f"🍲 **Dinner:** {meals.loc[2, 'Dinner Suggestion']} — RM {meals.loc[2, PRICE]:.2f}")
         st.write(f"🍪 **Snack:** {meals.loc[3, 'Snack Suggestion']} — RM {meals.loc[3, PRICE]:.2f}")
 
-        # ---------------- Totals ----------------
+        # ---------------- Corrected Daily Totals ----------------
+        # Average nutrition across meals to avoid inflated values
+
         total_cost = meals[PRICE].sum()
-        total_cal = meals[CAL].sum()
-        total_pro = meals[PRO].sum()
-        total_fat = meals[FAT].sum()
 
-        st.subheader("💰 Total Daily Cost")
-        st.write(f"👉 **RM {total_cost:.2f} per day**")
+        avg_cal = meals[CAL].mean()
+        avg_pro = meals[PRO].mean()
+        avg_fat = meals[FAT].mean()
 
-        st.subheader("📊 Daily Nutrition Summary")
+        # Daily totals = average × 4 meals
+        total_cal = avg_cal * 4
+        total_pro = avg_pro * 4
+        total_fat = avg_fat * 4
+
+        st.subheader("📊 Daily Nutrition Summary (Combined Meals)")
         st.write(f"🔥 Calories: **{total_cal:.0f} kcal**")
         st.write(f"💪 Protein: **{total_pro:.1f} g**")
         st.write(f"🧈 Fat: **{total_fat:.1f} g**")
