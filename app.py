@@ -5,12 +5,12 @@ import numpy as np
 
 st.title("🍽️ Meal-by-Meal Diet Cost Optimizer (Evolution Strategies)")
 
-uploaded_file = st.file_uploader("📂 Upload your CSV file", type=["csv"])
+uploaded_file = st.file_uploader(" Upload your CSV file", type=["csv"])
 
 if uploaded_file:
     data = pd.read_csv(uploaded_file)
 
-    st.subheader("📋 Dataset Preview")
+    st.subheader("Dataset Preview")
     st.dataframe(data.head())
 
     CAL = "Calories"
@@ -19,13 +19,13 @@ if uploaded_file:
     PRICE = "Price_RM"
 
     # ---------------- Nutrition Targets ----------------
-    st.sidebar.header("🎯 Daily Nutrition Requirements")
+    st.sidebar.header("Daily Nutrition Requirements")
     req_cal = st.sidebar.number_input("Minimum Calories", 1200, 4000, 1800)
     req_pro = st.sidebar.number_input("Minimum Protein (g)", 30, 300, 60)
     req_fat = st.sidebar.number_input("Maximum Fat (g)", 10, 300, 80)
 
     # ---------------- Evolution Settings ----------------
-    st.sidebar.header("🧬 Evolution Strategy Settings")
+    st.sidebar.header("Evolution Strategy Settings")
     pop_size = st.sidebar.slider("Population Size", 20, 200, 50)
     generations = st.sidebar.slider("Generations", 100, 600, 300)
     mutation_rate = st.sidebar.slider("Mutation Rate", 0.05, 0.5, 0.2)
@@ -69,15 +69,15 @@ if uploaded_file:
         return population[0]
 
     # ---------------- Run Optimization ----------------
-    if st.button("🚀 Optimize Meal Costs"):
+    if st.button("Optimize Meal Costs"):
         best = evolve_meal_plan()
         meals = data.loc[best].reset_index(drop=True)
 
-        st.subheader("🍽️ Optimized Meal Choices")
-        st.write(f"🍳 Breakfast: {meals.loc[0,'Breakfast Suggestion']} — RM {meals.loc[0,PRICE]:.2f}")
-        st.write(f"🍛 Lunch: {meals.loc[1,'Lunch Suggestion']} — RM {meals.loc[1,PRICE]:.2f}")
-        st.write(f"🍲 Dinner: {meals.loc[2,'Dinner Suggestion']} — RM {meals.loc[2,PRICE]:.2f}")
-        st.write(f"🍪 Snack: {meals.loc[3,'Snack Suggestion']} — RM {meals.loc[3,PRICE]:.2f}")
+        st.subheader("Optimized Meal Choices")
+        st.write(f"Breakfast: {meals.loc[0,'Breakfast Suggestion']} — RM {meals.loc[0,PRICE]:.2f}")
+        st.write(f"Lunch: {meals.loc[1,'Lunch Suggestion']} — RM {meals.loc[1,PRICE]:.2f}")
+        st.write(f"Dinner: {meals.loc[2,'Dinner Suggestion']} — RM {meals.loc[2,PRICE]:.2f}")
+        st.write(f"Snack: {meals.loc[3,'Snack Suggestion']} — RM {meals.loc[3,PRICE]:.2f}")
 
         # ---------------- Corrected Daily Nutrition ----------------
         total_cost = meals[PRICE].sum()
@@ -85,10 +85,10 @@ if uploaded_file:
         total_pro = meals[PRO].sum() / 4
         total_fat = meals[FAT].sum() / 4
 
-        st.subheader("💰 Total Daily Cost")
+        st.subheader("Total Daily Cost")
         st.write(f"RM {total_cost:.2f}")
 
-        st.subheader("📊 Daily Nutrition Summary (CORRECTED)")
+        st.subheader("Daily Nutrition Summary")
         st.write(f"Calories: **{total_cal:.0f} kcal**")
         st.write(f"Protein: **{total_pro:.1f} g**")
         st.write(f"Fat: **{total_fat:.1f} g**")
