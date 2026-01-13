@@ -3,7 +3,7 @@ import pandas as pd
 import random
 import numpy as np
 
-st.title("🍽️ Meal-by-Meal Diet Cost Optimizer (Evolution Strategies)")
+st.title("Diet Meal Cost Optimizer (ES)")
 
 uploaded_file = st.file_uploader(" Upload your CSV file", type=["csv"])
 
