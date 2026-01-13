@@ -47,7 +47,14 @@ if uploaded_file:
             combined = population + offspring
 
             # sort by price only FOR THIS MEAL
-            combined = sorted(combined, key=lambda i: data.loc[i, PRICE])
+            def meal_fitness(i):
+    price = data.loc[i, PRICE]
+    fat = data.loc[i, FAT]
+
+    # Penalize high fat items
+    return price + 0.1 * fat
+
+combined = sorted(combined, key=lambda i: meal_fitness(i))
 
             population = combined[:pop_size]
 
