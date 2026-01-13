@@ -98,9 +98,9 @@ if uploaded_file:
         st.write(f"👉 **RM {total_cost:.2f} per day**")
 
         # --------------------- Total Nutrients ---------------------
-        total_cal = bfull[CAL] + lfull[CAL] + dfull[CAL] + sfull[CAL]
-        total_pro = bfull[PRO] + lfull[CAL] + dfull[CAL] + sfull[CAL]
-        total_fat = bfull[FAT] + lfull[CAL] + dfull[CAL] + sfull[CAL]
+        total_cal = bfull[CAL] + lfull[CAL] 
+        total_pro = bfull[PRO] + lfull[CAL] 
+        total_fat = bfull[FAT] + lfull[CAL] 
 
         st.subheader("📊 Daily Nutrition Summary")
         st.write(f"🔥 Calories: **{total_cal} kcal** (Target: {req_cal})")
