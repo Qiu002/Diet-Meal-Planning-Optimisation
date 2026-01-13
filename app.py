@@ -49,7 +49,7 @@ if uploaded_file:
             total_fat = b_row[FAT] 
 
             # Compute total price
-            total_price = b_row[PRICE] + l_row[PRICE] + d_row[PRICE] + s_row[PRICE]
+            total_price = b_row[PRICE] + l_row[PRICE] 
 
             # Optional: Skip unrealistic expensive meals
             max_meal_price = total_price / 4 * 2  # each meal <= 2x avg price
