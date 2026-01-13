@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import random
 import numpy as np
+import matplotlib.pyplot as plt
 
 st.title("Diet Meal Cost Optimizer (ES)")
 
@@ -34,7 +35,6 @@ if uploaded_file:
     def fitness(solution):
         meals = data.loc[solution]
 
-        # SCALE nutrition per meal (¼ per meal)
         total_cal = meals[CAL].sum() / 4
         total_pro = meals[PRO].sum() / 4
         total_fat = meals[FAT].sum() / 4
@@ -55,8 +55,11 @@ if uploaded_file:
         n = len(data)
         population = [np.random.randint(0, n, 4) for _ in range(pop_size)]
 
+        best_fitness_history = []
+
         for _ in range(generations):
             offspring = []
+
             for parent in population:
                 child = parent.copy()
                 for i in range(4):
@@ -66,11 +69,14 @@ if uploaded_file:
 
             population = sorted(population + offspring, key=fitness)[:pop_size]
 
-        return population[0]
+            # Track best fitness
+            best_fitness_history.append(fitness(population[0]))
+
+        return population[0], best_fitness_history
 
     # ---------------- Run Optimization ----------------
     if st.button("Optimize Meal Costs"):
-        best = evolve_meal_plan()
+        best, fitness_history = evolve_meal_plan()
         meals = data.loc[best].reset_index(drop=True)
 
         st.subheader("Optimized Meal Choices")
@@ -79,7 +85,7 @@ if uploaded_file:
         st.write(f"Dinner: {meals.loc[2,'Dinner Suggestion']} — RM {meals.loc[2,PRICE]:.2f}")
         st.write(f"Snack: {meals.loc[3,'Snack Suggestion']} — RM {meals.loc[3,PRICE]:.2f}")
 
-        # ---------------- Corrected Daily Nutrition ----------------
+        # ---------------- Daily Totals ----------------
         total_cost = meals[PRICE].sum()
         total_cal = meals[CAL].sum() / 4
         total_pro = meals[PRO].sum() / 4
@@ -99,6 +105,17 @@ if uploaded_file:
             st.warning("Protein requirement NOT met")
         if total_fat > req_fat:
             st.warning("Fat limit exceeded")
+
+        # ---------------- Convergence Plot ----------------
+        st.subheader("Evolution Strategy Convergence Analysis")
+
+        fig, ax = plt.subplots()
+        ax.plot(fitness_history)
+        ax.set_xlabel("Generation")
+        ax.set_ylabel("Best Fitness Value")
+        ax.set_title("Convergence of Evolution Strategy")
+
+        st.pyplot(fig)
 
 else:
     st.info("Upload a CSV file to start.")
