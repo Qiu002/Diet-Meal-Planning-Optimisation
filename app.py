@@ -105,9 +105,10 @@ if uploaded_file:
         st.write("Snack :", meals.loc[3, "Snack Suggestion"], "RM", meals.loc[3, PRICE])
 
         total_cost = meals[PRICE].sum()
-        total_cal = meals[CAL].sum()
-        total_pro = meals[PRO].sum()
-        total_fat = meals[FAT].sum()
+        total_cal = meals.iloc[0][CAL]
+        total_pro = meals.iloc[0][PRO]
+        total_fat = meals.iloc[0][FAT]
+
 
         st.subheader("Daily Cost")
         st.write("RM", round(total_cost, 2))
