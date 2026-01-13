@@ -3,9 +3,9 @@ import pandas as pd
 import random
 import numpy as np
 
-st.title("Diet Meal Cost Optimizer (ES)")
+st.title("Personalized Diet Meal Cost Optimizer")
 
-uploaded_file = st.file_uploader(" Upload your CSV file", type=["csv"])
+uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
 
 if uploaded_file:
     data = pd.read_csv(uploaded_file)
@@ -13,91 +13,127 @@ if uploaded_file:
     st.subheader("Dataset Preview")
     st.dataframe(data.head())
 
+    # ---- USER INPUTS ----
+    st.sidebar.header("User Profile")
+
+    weight = st.sidebar.number_input("Weight (kg)", 30, 200, 60)
+    activity = st.sidebar.selectbox("Activity Level", ["Low", "Moderate", "High"])
+    diet_pref = st.sidebar.selectbox("Dietary Preference", data["Dietary Preference"].unique())
+    disease = st.sidebar.selectbox("Disease", data["Disease"].unique())
+
+    # ---- CALCULATE DAILY NEEDS BASED ON WEIGHT ----
+    if activity == "Low":
+        req_cal = weight * 25
+    elif activity == "Moderate":
+        req_cal = weight * 30
+    else:
+        req_cal = weight * 35
+
+    req_pro = weight * 0.8               # simple safe guideline
+    req_fat_max = 0.35 * req_cal / 9     # WHO guideline upper bound
+
+    st.sidebar.write(f"Estimated calorie need: {req_cal:.0f} kcal/day")
+
+    # ---- FILTER DATA BASED ON USER ----
+    filtered = data[
+        (data["Dietary Preference"] == diet_pref) &
+        (data["Disease"] == disease)
+    ].copy()
+
+    if filtered.empty:
+        st.error("No food matches your dietary preference and disease filter!")
+    else:
+        st.success(f"{len(filtered)} meals available after filtering")
+
+    # ---- COLUMN NAMES ----
     CAL = "Calories"
     PRO = "Protein"
     FAT = "Fat"
     PRICE = "Price_RM"
 
-    # ---------------- Nutrition Targets ----------------
-    st.sidebar.header("Daily Nutrition Requirements")
-    req_cal = st.sidebar.number_input("Minimum Calories", 1200, 4000, 1800)
-    req_pro = st.sidebar.number_input("Minimum Protein (g)", 30, 300, 60)
-    req_fat = st.sidebar.number_input("Maximum Fat (g)", 10, 300, 80)
-
-    # ---------------- Evolution Settings ----------------
-    st.sidebar.header("Evolution Strategy Settings")
-    pop_size = st.sidebar.slider("Population Size", 20, 200, 50)
-    generations = st.sidebar.slider("Generations", 100, 600, 300)
-    mutation_rate = st.sidebar.slider("Mutation Rate", 0.05, 0.5, 0.2)
-
-    # ---------------- Fitness Function ----------------
+    # ---- FITNESS FUNCTION ----
     def fitness(solution):
-        meals = data.loc[solution]
+        meals = filtered.loc[solution]
 
-        # SCALE nutrition per meal (¼ per meal)
-        total_cal = meals[CAL].sum() / 4
-        total_pro = meals[PRO].sum() / 4
-        total_fat = meals[FAT].sum() / 4
+        total_cal = meals[CAL].sum()
+        total_pro = meals[PRO].sum()
+        total_fat = meals[FAT].sum()
         total_cost = meals[PRICE].sum()
 
         penalty = 0
+
         if total_cal < req_cal:
-            penalty += (req_cal - total_cal) * 0.1
+            penalty += (req_cal - total_cal) * 0.2
+
         if total_pro < req_pro:
-            penalty += (req_pro - total_pro) * 0.2
-        if total_fat > req_fat:
-            penalty += (total_fat - req_fat) * 0.2
+            penalty += (req_pro - total_pro) * 0.5
+
+        if total_fat > req_fat_max:
+            penalty += (total_fat - req_fat_max) * 0.5
 
         return total_cost + penalty
 
-    # ---------------- Evolution Strategy ----------------
-    def evolve_meal_plan():
-        n = len(data)
-        population = [np.random.randint(0, n, 4) for _ in range(pop_size)]
+    # ---- EVOLUTION STRATEGY ----
+    def evolve():
+        n = len(filtered)
 
-        for _ in range(generations):
+        # index positions for meals
+        population = [
+            [
+                random.randrange(n),  # breakfast
+                random.randrange(n),  # lunch
+                random.randrange(n),  # dinner
+                random.randrange(n)   # snack
+            ]
+            for _ in range(50)
+        ]
+
+        for _ in range(300):
+
             offspring = []
+
             for parent in population:
                 child = parent.copy()
+                # mutation
                 for i in range(4):
-                    if random.random() < mutation_rate:
+                    if random.random() < 0.3:
                         child[i] = random.randrange(n)
                 offspring.append(child)
 
-            population = sorted(population + offspring, key=fitness)[:pop_size]
+            # select best
+            population = sorted(population + offspring, key=fitness)[:50]
 
         return population[0]
 
-    # ---------------- Run Optimization ----------------
-    if st.button("Optimize Meal Costs"):
-        best = evolve_meal_plan()
-        meals = data.loc[best].reset_index(drop=True)
+    # ---- RUN OPTIMIZATION ----
+    if st.button("Optimize Meal Plan"):
+        best = evolve()
+        result = filtered.loc[best].reset_index(drop=True)
 
-        st.subheader("Optimized Meal Choices")
-        st.write(f"Breakfast: {meals.loc[0,'Breakfast Suggestion']} — RM {meals.loc[0,PRICE]:.2f}")
-        st.write(f"Lunch: {meals.loc[1,'Lunch Suggestion']} — RM {meals.loc[1,PRICE]:.2f}")
-        st.write(f"Dinner: {meals.loc[2,'Dinner Suggestion']} — RM {meals.loc[2,PRICE]:.2f}")
-        st.write(f"Snack: {meals.loc[3,'Snack Suggestion']} — RM {meals.loc[3,PRICE]:.2f}")
+        st.subheader("Selected Meals")
 
-        # ---------------- Corrected Daily Nutrition ----------------
-        total_cost = meals[PRICE].sum()
-        total_cal = meals[CAL].sum() / 4
-        total_pro = meals[PRO].sum() / 4
-        total_fat = meals[FAT].sum() / 4
+        st.write("🍳 Breakfast:", result.loc[0, "Breakfast Suggestion"], " — RM", result.loc[0, PRICE])
+        st.write("🍚 Lunch:", result.loc[1, "Lunch Suggestion"], " — RM", result.loc[1, PRICE])
+        st.write("🍛 Dinner:", result.loc[2, "Dinner Suggestion"], " — RM", result.loc[2, PRICE])
+        st.write("🍎 Snack:", result.loc[3, "Snack Suggestion"], " — RM", result.loc[3, PRICE])
 
-        st.subheader("Total Daily Cost")
-        st.write(f"RM {total_cost:.2f}")
+        total_cost = result[PRICE].sum()
+        total_cal = result[CAL].sum()
+        total_pro = result[PRO].sum()
+        total_fat = result[FAT].sum()
 
-        st.subheader("Daily Nutrition Summary")
-        st.write(f"Calories: **{total_cal:.0f} kcal**")
-        st.write(f"Protein: **{total_pro:.1f} g**")
-        st.write(f"Fat: **{total_fat:.1f} g**")
+        st.subheader("Daily Totals")
+        st.write(f"💰 Cost: RM {total_cost:.2f}")
+        st.write(f"🔥 Calories: {total_cal:.0f} kcal")
+        st.write(f"💪 Protein: {total_pro:.1f} g")
+        st.write(f"🧈 Fat: {total_fat:.1f} g")
 
+        # requirement status
         if total_cal < req_cal:
             st.warning("Calories requirement NOT met")
         if total_pro < req_pro:
             st.warning("Protein requirement NOT met")
-        if total_fat > req_fat:
+        if total_fat > req_fat_max:
             st.warning("Fat limit exceeded")
 
 else:
