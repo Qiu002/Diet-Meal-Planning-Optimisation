@@ -99,8 +99,8 @@ if uploaded_file:
 
         # --------------------- Total Nutrients ---------------------
         total_cal = bfull[CAL] + lfull[CAL] 
-        total_pro = bfull[PRO] + lfull[CAL] 
-        total_fat = bfull[FAT] + lfull[CAL] 
+        total_pro = bfull[PRO] 
+        total_fat = bfull[FAT]  
 
         st.subheader("📊 Daily Nutrition Summary")
         st.write(f"🔥 Calories: **{total_cal} kcal** (Target: {req_cal})")
