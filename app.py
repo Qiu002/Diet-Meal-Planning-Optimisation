@@ -28,7 +28,7 @@ if uploaded_file:
     st.sidebar.header("🧬 Evolution Strategy Settings")
     pop_size = st.sidebar.slider("Population Size", 20, 200, 50)
     generations = st.sidebar.slider("Generations", 100, 600, 300)
-    mutation_rate = st.sidebar.slider("Mutation Rate", 0.2, 0.5, 0.2)
+    mutation_rate = st.sidebar.slider("Mutation Rate", 0.05, 0.5, 0.2)
 
     # ---------------- Fitness Function ----------------
     def fitness(solution):
