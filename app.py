@@ -73,10 +73,10 @@ if uploaded_file:
 
         st.subheader("🥗 Best Daily Meal Plan")
 
-        breakfast = best_plan[best_plan["meal_type"] == "breakfast"].head(1)
-        lunch = best_plan[best_plan["meal_type"] == "lunch"].head(1)
-        dinner = best_plan[best_plan["meal_type"] == "dinner"].head(1)
-        snack = best_plan[best_plan["meal_type"] == "snack"].head(1)
+        breakfast = best_plan[best_plan["Breakfast Suggestion"] == "breakfast"].head(1)
+        lunch = best_plan[best_plan["Lunch Suggestion"] == "lunch"].head(1)
+        dinner = best_plan[best_plan["Dinner Suggestion"] == "dinner"].head(1)
+        snack = best_plan[best_plan["Snack Suggestion"] == "snack"].head(1)
 
         st.write("### 🍳 Breakfast Suggestion")
         st.table(breakfast)
