@@ -49,7 +49,7 @@ if uploaded_file:
             total_fat = b_row[FAT] 
 
             # Compute total price
-            total_price = b_row[PRICE] + l_row[PRICE] + d_row[PRICE] + s_row[PRICE]
+            total_price = b_row[PRICE] + l_row[PRICE] 
 
             # Keep combination only if it meets requirements
             if total_cal >= req_cal and total_pro >= req_pro and total_fat <= req_fat:
