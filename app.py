@@ -44,12 +44,18 @@ if uploaded_file:
             s_row = data.sample(1).iloc[0]
 
             # Compute total nutrients for the day
-            total_cal = b_row[CAL] 
-            total_pro = b_row[PRO] 
-            total_fat = b_row[FAT] 
+            total_cal = b_row[CAL] + l_row[CAL] + d_row[CAL] + s_row[CAL]
+            total_pro = b_row[PRO] + l_row[PRO] + d_row[PRO] + s_row[PRO]
+            total_fat = b_row[FAT] + l_row[FAT] + d_row[FAT] + s_row[FAT]
 
             # Compute total price
-            total_price = b_row[PRICE] + l_row[PRICE] 
+            total_price = b_row[PRICE] + l_row[PRICE] + d_row[PRICE] + s_row[PRICE]
+
+            # Optional: Skip unrealistic expensive meals
+            max_meal_price = total_price / 4 * 2  # each meal <= 2x avg price
+            if any([b_row[PRICE] > max_meal_price, l_row[PRICE] > max_meal_price,
+                    d_row[PRICE] > max_meal_price, s_row[PRICE] > max_meal_price]):
+                continue
 
             # Keep combination only if it meets requirements
             if total_cal >= req_cal and total_pro >= req_pro and total_fat <= req_fat:
@@ -78,9 +84,9 @@ if uploaded_file:
             st.write(f"👉 **RM {total_daily_cost:.2f} per day**")
 
             st.subheader("📊 Daily Nutrition Summary")
-            total_cal = bfull[CAL]   # typo fixed here
-            total_pro = bfull[PRO] 
-            total_fat = bfull[FAT] 
+            total_cal = bfull[CAL] + lfull[CAL] + dfull[CAL] + sfull[CAL]
+            total_pro = bfull[PRO] + lfull[PRO] + dfull[PRO] + sfull[PRO]
+            total_fat = bfull[FAT] + lfull[FAT] + dfull[FAT] + sfull[FAT]
 
             st.write(f"🔥 Calories: **{total_cal} kcal**")
             st.write(f"💪 Protein: **{total_pro} g**")
