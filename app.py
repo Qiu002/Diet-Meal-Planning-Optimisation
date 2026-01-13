@@ -4,7 +4,6 @@ import random
 import numpy as np
 
 st.title("🍽️ Meal-by-Meal Diet Cost Optimizer (Evolution Strategies)")
-st.write("Optimizes daily meal plans at the lowest cost while meeting nutrition requirements.")
 
 uploaded_file = st.file_uploader("📂 Upload your CSV file", type=["csv"])
 
@@ -35,33 +34,29 @@ if uploaded_file:
     def fitness(solution):
         meals = data.loc[solution]
 
+        # SCALE nutrition per meal (¼ per meal)
+        total_cal = meals[CAL].sum() / 4
+        total_pro = meals[PRO].sum() / 4
+        total_fat = meals[FAT].sum() / 4
         total_cost = meals[PRICE].sum()
-        total_cal = meals[CAL].sum()
-        total_pro = meals[PRO].sum()
-        total_fat = meals[FAT].sum()
 
         penalty = 0
         if total_cal < req_cal:
-            penalty += (req_cal - total_cal) * 0.05
+            penalty += (req_cal - total_cal) * 0.1
         if total_pro < req_pro:
-            penalty += (req_pro - total_pro) * 0.1
+            penalty += (req_pro - total_pro) * 0.2
         if total_fat > req_fat:
-            penalty += (total_fat - req_fat) * 0.1
+            penalty += (total_fat - req_fat) * 0.2
 
         return total_cost + penalty
 
     # ---------------- Evolution Strategy ----------------
     def evolve_meal_plan():
         n = len(data)
-
-        population = [
-            np.random.randint(0, n, size=4)
-            for _ in range(pop_size)
-        ]
+        population = [np.random.randint(0, n, 4) for _ in range(pop_size)]
 
         for _ in range(generations):
             offspring = []
-
             for parent in population:
                 child = parent.copy()
                 for i in range(4):
@@ -69,45 +64,41 @@ if uploaded_file:
                         child[i] = random.randrange(n)
                 offspring.append(child)
 
-            combined = population + offspring
-            combined.sort(key=fitness)
-            population = combined[:pop_size]
+            population = sorted(population + offspring, key=fitness)[:pop_size]
 
         return population[0]
 
-    # ---------------- Optimization ----------------
+    # ---------------- Run Optimization ----------------
     if st.button("🚀 Optimize Meal Costs"):
         best = evolve_meal_plan()
         meals = data.loc[best].reset_index(drop=True)
 
-        st.success("Optimization complete!")
-
         st.subheader("🍽️ Optimized Meal Choices")
-        st.write(f"🍳 **Breakfast:** {meals.loc[0, 'Breakfast Suggestion']} — RM {meals.loc[0, PRICE]:.2f}")
-        st.write(f"🍛 **Lunch:** {meals.loc[1, 'Lunch Suggestion']} — RM {meals.loc[1, PRICE]:.2f}")
-        st.write(f"🍲 **Dinner:** {meals.loc[2, 'Dinner Suggestion']} — RM {meals.loc[2, PRICE]:.2f}")
-        st.write(f"🍪 **Snack:** {meals.loc[3, 'Snack Suggestion']} — RM {meals.loc[3, PRICE]:.2f}")
+        st.write(f"🍳 Breakfast: {meals.loc[0,'Breakfast Suggestion']} — RM {meals.loc[0,PRICE]:.2f}")
+        st.write(f"🍛 Lunch: {meals.loc[1,'Lunch Suggestion']} — RM {meals.loc[1,PRICE]:.2f}")
+        st.write(f"🍲 Dinner: {meals.loc[2,'Dinner Suggestion']} — RM {meals.loc[2,PRICE]:.2f}")
+        st.write(f"🍪 Snack: {meals.loc[3,'Snack Suggestion']} — RM {meals.loc[3,PRICE]:.2f}")
 
-        # ---------------- Correct Daily Totals ----------------
+        # ---------------- Corrected Daily Nutrition ----------------
         total_cost = meals[PRICE].sum()
-        total_cal = meals[CAL].sum()
-        total_pro = meals[PRO].sum()
-        total_fat = meals[FAT].sum()
+        total_cal = meals[CAL].sum() / 4
+        total_pro = meals[PRO].sum() / 4
+        total_fat = meals[FAT].sum() / 4
 
         st.subheader("💰 Total Daily Cost")
-        st.write(f"👉 **RM {total_cost:.2f} per day**")
+        st.write(f"RM {total_cost:.2f}")
 
-        st.subheader("📊 Daily Nutrition Summary (Combined Meals)")
-        st.write(f"🔥 Calories: **{total_cal:.0f} kcal**")
-        st.write(f"💪 Protein: **{total_pro:.1f} g**")
-        st.write(f"🧈 Fat: **{total_fat:.1f} g**")
+        st.subheader("📊 Daily Nutrition Summary (CORRECTED)")
+        st.write(f"Calories: **{total_cal:.0f} kcal**")
+        st.write(f"Protein: **{total_pro:.1f} g**")
+        st.write(f"Fat: **{total_fat:.1f} g**")
 
         if total_cal < req_cal:
-            st.warning("⚠️ Calories requirement NOT met")
+            st.warning("Calories requirement NOT met")
         if total_pro < req_pro:
-            st.warning("⚠️ Protein requirement NOT met")
+            st.warning("Protein requirement NOT met")
         if total_fat > req_fat:
-            st.warning("⚠️ Fat limit exceeded")
+            st.warning("Fat limit exceeded")
 
 else:
-    st.info("📂 Upload your CSV file to begin optimization.")
+    st.info("Upload a CSV file to start.")
