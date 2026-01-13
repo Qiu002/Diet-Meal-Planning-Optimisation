@@ -31,33 +31,33 @@ if uploaded_file:
     generations = st.sidebar.slider("Generations", 20, 600, 300)
     mutation_rate = st.sidebar.slider("Mutation Rate", 0.01, 0.5, 0.1)
 
-    # --------------------- Meal Optimizer: Random + Nutrient Check ---------------------
+    # --------------------- Meal Optimizer ---------------------
     def optimize_meal_combination():
         best_combination = None
         best_total_price = float('inf')
 
         for _ in range(generations):
-            # Randomly pick one row for each meal
-            b_row = data.sample(1).iloc[0]
-            l_row = data.sample(1).iloc[0]
-            d_row = data.sample(1).iloc[0]
-            s_row = data.sample(1).iloc[0]
+            # Randomly pick one valid row for each meal type
+            b_row = data[data['Breakfast Suggestion'].notna()].sample(1).iloc[0]
+            l_row = data[data['Lunch Suggestion'].notna()].sample(1).iloc[0]
+            d_row = data[data['Dinner Suggestion'].notna()].sample(1).iloc[0]
+            s_row = data[data['Snack Suggestion'].notna()].sample(1).iloc[0]
 
             # Compute total nutrients for the day
-            total_cal = b_row[CAL] 
-            total_pro = b_row[PRO] 
-            total_fat = b_row[FAT] 
+            total_cal = b_row[CAL] + l_row[CAL] + d_row[CAL] + s_row[CAL]
+            total_pro = b_row[PRO] + l_row[PRO] + d_row[PRO] + s_row[PRO]
+            total_fat = b_row[FAT] + l_row[FAT] + d_row[FAT] + s_row[FAT]
 
             # Compute total price
-            total_price = b_row[PRICE] + l_row[PRICE] 
+            total_price = b_row[PRICE] + l_row[PRICE] + d_row[PRICE] + s_row[PRICE]
 
-            # Optional: Skip unrealistic expensive meals
-            max_meal_price = total_price / 4 * 2  # each meal <= 2x avg price
+            # Optional: skip unrealistic expensive meals
+            max_meal_price = total_price / 4 * 2
             if any([b_row[PRICE] > max_meal_price, l_row[PRICE] > max_meal_price,
                     d_row[PRICE] > max_meal_price, s_row[PRICE] > max_meal_price]):
                 continue
 
-            # Keep combination only if it meets requirements
+            # Keep combination only if it meets daily requirements
             if total_cal >= req_cal and total_pro >= req_pro and total_fat <= req_fat:
                 if total_price < best_total_price:
                     best_total_price = total_price
@@ -84,9 +84,9 @@ if uploaded_file:
             st.write(f"👉 **RM {total_daily_cost:.2f} per day**")
 
             st.subheader("📊 Daily Nutrition Summary")
-            total_cal = bfull[CAL] 
-            total_pro = bfull[PRO] 
-            total_fat = bfull[FAT] 
+            total_cal = bfull[CAL] + lfull[CAL] + dfull[CAL] + sfull[CAL]
+            total_pro = bfull[PRO] + lfull[PRO] + dfull[PRO] + sfull[PRO]
+            total_fat = bfull[FAT] + lfull[FAT] + dfull[FAT] + sfull[FAT]
 
             st.write(f"🔥 Calories: **{total_cal} kcal**")
             st.write(f"💪 Protein: **{total_pro} g**")
