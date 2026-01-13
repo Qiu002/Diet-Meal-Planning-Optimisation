@@ -1,110 +1,105 @@
 import streamlit as st
 import pandas as pd
-from pulp import LpProblem, LpVariable, LpMinimize, LpStatus, lpSum, value
+import numpy as np
+import random
 
-st.set_page_config(page_title="Meal Plan Optimizer", page_icon="🥗")
+st.title("🍽️ Diet Meal Plan Optimizer with Evolution Strategies")
+st.write("Select a daily meal plan meeting nutritional needs at minimum total cost.")
 
-st.title("🥗 Daily Meal Plan Optimizer")
-st.write("Select a daily meal plan that meets nutritional requirements at the lowest total cost.")
+# ------------------------ Upload CSV ------------------------
+uploaded_file = st.file_uploader("📂 Upload your meal dataset CSV", type=["csv"])
+if uploaded_file:
+    data = pd.read_csv(uploaded_file)
 
-# -----------------------------
-# Load CSV
-# -----------------------------
-try:
-    df = pd.read_csv("Food_and_Nutrition_with_Price.csv")
-except:
-    st.error("CSV file not found. Make sure it is in the same folder as app.py and named correctly.")
-    st.stop()
+    st.subheader("📋 Preview of Meal Dataset")
+    st.dataframe(data.head())
 
-st.subheader("📦 Uploaded Dataset")
-st.dataframe(df)
+    # ------------------------ User Inputs ------------------------
+    st.sidebar.header("⚙️ Nutritional Requirements")
+    req_cal = st.sidebar.number_input("Minimum Daily Calories", 1200, 4000, 1800)
+    req_pro = st.sidebar.number_input("Minimum Daily Protein (g)", 30, 300, 60)
+    req_fat = st.sidebar.number_input("Maximum Daily Fat (g)", 10, 300, 80)
 
-st.write("Detected columns:", list(df.columns))
+    pop_size = st.sidebar.slider("Population Size", 10, 200, 50)
+    generations = st.sidebar.slider("Generations", 10, 500, 200)
+    mutation_rate = st.sidebar.slider("Mutation Rate", 0.01, 0.5, 0.1)
 
-# -----------------------------
-# USER selects column names
-# -----------------------------
-st.sidebar.header("🧭 Map your column names")
+    st.sidebar.info("The optimizer will find the lowest-cost meal plan that meets your constraints.")
 
-food_col = st.sidebar.selectbox("Select column for FOOD NAME", df.columns)
-cal_col = st.sidebar.selectbox("Select column for CALORIES", df.columns)
-pro_col = st.sidebar.selectbox("Select column for PROTEIN (g)", df.columns)
-fat_col = st.sidebar.selectbox("Select column for FAT (g)", df.columns)
-price_col = st.sidebar.selectbox("Select column for PRICE", df.columns)
+    # ------------------------ Evolution Strategies ------------------------
+    def fitness(individual):
+        subset = data.iloc[individual]
 
-# -----------------------------
-# Nutrition requirement inputs
-# -----------------------------
-st.sidebar.header("⚙️ Set Nutrition Requirements")
+        total_cal = subset['calories'].sum()
+        total_pro = subset['protein'].sum()
+        total_fat = subset['fat'].sum()
+        total_cost = subset['price'].sum()
 
-cal_need = st.sidebar.number_input("Minimum Calories", value=2000, step=100)
-pro_need = st.sidebar.number_input("Minimum Protein (g)", value=50, step=5)
-fat_need = st.sidebar.number_input("Minimum Fat (g)", value=70, step=5)
+        penalty = 0
+        if total_cal < req_cal: penalty += (req_cal - total_cal)
+        if total_pro < req_pro: penalty += (req_pro - total_pro)
+        if total_fat > req_fat: penalty += (total_fat - req_fat)
 
-# meal selection list
-meal_options = df[food_col].tolist()
-selected_meals = st.sidebar.multiselect("Select meals to include", meal_options, default=meal_options)
+        return total_cost + 10 * penalty
 
-run_button = st.sidebar.button("Optimize Meal Plan")
+    def evolution_strategies():
+        n = len(data)
+        mu = pop_size
+        lam = pop_size
 
-# -----------------------------
-# Filter selection
-# -----------------------------
-filtered_df = df[df[food_col].isin(selected_meals)].reset_index(drop=True)
+        population = [random.sample(range(n), 4) for _ in range(mu)]
 
-# -----------------------------
-# OPTIMIZATION
-# -----------------------------
-if run_button:
+        for _ in range(generations):
+            offspring = []
+            for parent in population:
+                child = parent.copy()
+                if random.random() < mutation_rate:
+                    idx = random.randrange(4)
+                    child[idx] = random.randrange(n)
+                offspring.append(child)
 
-    prob = LpProblem("Diet_Optimization", LpMinimize)
+            combined = population + offspring
+            scored = sorted(combined, key=lambda ind: fitness(ind))
+            population = scored[:mu]
 
-    # decision variables (portion amounts)
-    x = LpVariable.dicts("portion", filtered_df.index, lowBound=0)
+        best = population[0]
+        return data.iloc[best]
 
-    # objective function
-    prob += lpSum(filtered_df.loc[i, price_col] * x[i] for i in filtered_df.index)
+    # ------------------------ Run Optimizer ------------------------
+    if st.button("🚀 Optimize Meal Plan"):
+        best_plan = evolution_strategies()
 
-    # constraints
-    prob += lpSum(filtered_df.loc[i, cal_col] * x[i] for i in filtered_df.index) >= cal_need
-    prob += lpSum(filtered_df.loc[i, pro_col] * x[i] for i in filtered_df.index) >= pro_need
-    prob += lpSum(filtered_df.loc[i, fat_col] * x[i] for i in filtered_df.index) >= fat_need
+        st.success("Optimization completed!")
 
-    prob.solve()
+        st.subheader("🥗 Best Daily Meal Plan")
 
-    st.subheader("🧮 Optimization Status")
-    st.write(LpStatus[prob.status])
+        breakfast = best_plan[best_plan["meal_type"] == "breakfast"].head(1)
+        lunch = best_plan[best_plan["meal_type"] == "lunch"].head(1)
+        dinner = best_plan[best_plan["meal_type"] == "dinner"].head(1)
+        snack = best_plan[best_plan["meal_type"] == "snack"].head(1)
 
-    if LpStatus[prob.status] != "Optimal":
-        st.error("❌ No feasible solution. Increase food choices or reduce requirements.")
-    else:
-        results = []
-        for i in filtered_df.index:
-            qty = value(x[i])
-            if qty > 0.001:
-                results.append([
-                    filtered_df.loc[i, food_col],
-                    round(qty, 2),
-                    round(filtered_df.loc[i, cal_col] * qty, 2),
-                    round(filtered_df.loc[i, pro_col] * qty, 2),
-                    round(filtered_df.loc[i, fat_col] * qty, 2),
-                    round(filtered_df.loc[i, price_col] * qty, 2)
-                ])
+        st.write("### 🍳 Breakfast Suggestion")
+        st.table(breakfast)
 
-        result_df = pd.DataFrame(
-            results,
-            columns=["Food", "Quantity", "Calories", "Protein", "Fat", "Cost"]
-        )
+        st.write("### 🍛 Lunch Suggestion")
+        st.table(lunch)
 
-        st.subheader("🍽️ Optimal Meal Plan")
-        st.table(result_df)
+        st.write("### 🍲 Dinner Suggestion")
+        st.table(dinner)
 
-        st.subheader("💰 Minimum Total Daily Cost")
-        st.write("RM", round(result_df["Cost"].sum(), 2))
+        st.write("### 🍪 Snack Suggestion")
+        st.table(snack)
 
-        st.subheader("📊 Total Nutrition Achieved")
-        st.write("Calories:", round(result_df["Calories"].sum(), 2))
-        st.write("Protein:", round(result_df["Protein"].sum(), 2), "g")
-        st.write("Fat:", round(result_df["Fat"].sum(), 2), "g")
+        total_cal = best_plan["calories"].sum()
+        total_pro = best_plan["protein"].sum()
+        total_fat = best_plan["fat"].sum()
+        total_cost = best_plan["price"].sum()
 
-        st.success("🎉 Interactive optimization completed!")
+        st.subheader("📊 Nutrition Summary")
+        st.write(f"Total Calories: **{total_cal}** kcal")
+        st.write(f"Total Protein: **{total_pro}** g")
+        st.write(f"Total Fat: **{total_fat}** g")
+        st.write(f"💰 Total Cost: **RM {total_cost:.2f}**")
+
+else:
+    st.info("Please upload your CSV file to begin.")
