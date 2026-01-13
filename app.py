@@ -49,7 +49,7 @@ if uploaded_file:
         if total_fat > req_fat:
             penalty += (total_fat - req_fat)
 
-        return total_cost + 10 * penalty
+        return total_cost + 15 * penalty
 
     # --------------------- Evolution Strategies ---------------------
     def evolution_strategies():
