@@ -9,7 +9,7 @@ uploaded_file = st.file_uploader("📂 Upload your CSV file", type=["csv"])
 
 if uploaded_file:
     data = pd.read_csv(uploaded_file)
-
+    
     st.subheader("📋 Dataset Preview")
     st.dataframe(data.head())
 
