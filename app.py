@@ -2,16 +2,76 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import random
+import re
 
 st.title("🍽️ Diet Meal Plan Optimizer with Evolution Strategies")
 st.write("Select a daily meal plan meeting nutritional needs at minimum total cost.")
 
 # ------------------------ Upload CSV ------------------------
 uploaded_file = st.file_uploader("📂 Upload your meal dataset CSV", type=["csv"])
+
+def normalize_columns(df):
+    df = df.copy()
+    new_cols = []
+    for c in df.columns:
+        c2 = c.lower()
+        c2 = re.sub(r'[^a-z0-9]+', '', c2)
+        new_cols.append(c2)
+    df.columns = new_cols
+    return df
+
 if uploaded_file:
     data = pd.read_csv(uploaded_file)
 
-    st.subheader("📋 Preview of Meal Dataset")
+    # normalize column names
+    data = normalize_columns(data)
+
+    # ----------- auto-detect required columns -----------
+    column_map = {}
+
+    # calories
+    for cand in ["calories", "calorie", "kcal", "energy"]:
+        if cand in data.columns:
+            column_map["calories"] = cand
+            break
+
+    # protein
+    for cand in ["protein", "proteins"]:
+        if cand in data.columns:
+            column_map["protein"] = cand
+            break
+
+    # fat
+    for cand in ["fat", "fats", "totalfat"]:
+        if cand in data.columns:
+            column_map["fat"] = cand
+            break
+
+    # price / cost
+    for cand in ["price", "cost", "pricerm", "pricepermeal"]:
+        if cand in data.columns:
+            column_map["price"] = cand
+            break
+
+    # meal type
+    for cand in ["mealtype", "type", "category", "meal_category"]:
+        if cand in data.columns:
+            column_map["meal_type"] = cand
+            break
+
+    required = ["calories", "protein", "fat", "price", "meal_type"]
+
+    missing = [c for c in required if c not in column_map]
+
+    if missing:
+        st.error(
+            "Your CSV is missing the following required logical fields: "
+            + ", ".join(missing)
+            + ".\nPlease ensure your CSV has columns for calories, protein, fat, price, and meal type."
+        )
+        st.stop()
+
+    st.subheader("📋 Preview of Meal Dataset (normalized)")
     st.dataframe(data.head())
 
     # ------------------------ User Inputs ------------------------
@@ -24,28 +84,29 @@ if uploaded_file:
     generations = st.sidebar.slider("Generations", 10, 500, 200)
     mutation_rate = st.sidebar.slider("Mutation Rate", 0.01, 0.5, 0.1)
 
-    st.sidebar.info("The optimizer will find the lowest-cost meal plan that meets your constraints.")
-
-    # ------------------------ Evolution Strategies ------------------------
+    # ------------------------ Fitness Function ------------------------
     def fitness(individual):
         subset = data.iloc[individual]
 
-        total_cal = subset['calories'].sum()
-        total_pro = subset['protein'].sum()
-        total_fat = subset['fat'].sum()
-        total_cost = subset['price'].sum()
+        total_cal = subset[column_map["calories"]].sum()
+        total_pro = subset[column_map["protein"]].sum()
+        total_fat = subset[column_map["fat"]].sum()
+        total_cost = subset[column_map["price"]].sum()
 
         penalty = 0
-        if total_cal < req_cal: penalty += (req_cal - total_cal)
-        if total_pro < req_pro: penalty += (req_pro - total_pro)
-        if total_fat > req_fat: penalty += (total_fat - req_fat)
+        if total_cal < req_cal:
+            penalty += (req_cal - total_cal)
+        if total_pro < req_pro:
+            penalty += (req_pro - total_pro)
+        if total_fat > req_fat:
+            penalty += (total_fat - req_fat)
 
         return total_cost + 10 * penalty
 
+    # ------------------------ Evolution Strategies ------------------------
     def evolution_strategies():
         n = len(data)
         mu = pop_size
-        lam = pop_size
 
         population = [random.sample(range(n), 4) for _ in range(mu)]
 
@@ -73,10 +134,12 @@ if uploaded_file:
 
         st.subheader("🥗 Best Daily Meal Plan")
 
-        breakfast = best_plan[best_plan["Breakfast Suggestion"] == "breakfast"].head(1)
-        lunch = best_plan[best_plan["Lunch Suggestion"] == "lunch"].head(1)
-        dinner = best_plan[best_plan["Dinner Suggestion"] == "dinner"].head(1)
-        snack = best_plan[best_plan["Snack Suggestion"] == "snack"].head(1)
+        mt = column_map["meal_type"]
+
+        breakfast = best_plan[best_plan[mt].str.contains("break", case=False, na=False)].head(1)
+        lunch = best_plan[best_plan[mt].str.contains("lunch", case=False, na=False)].head(1)
+        dinner = best_plan[best_plan[mt].str.contains("dinner", case=False, na=False)].head(1)
+        snack = best_plan[best_plan[mt].str.contains("snack", case=False, na=False)].head(1)
 
         st.write("### 🍳 Breakfast Suggestion")
         st.table(breakfast)
@@ -90,10 +153,10 @@ if uploaded_file:
         st.write("### 🍪 Snack Suggestion")
         st.table(snack)
 
-        total_cal = best_plan["calories"].sum()
-        total_pro = best_plan["protein"].sum()
-        total_fat = best_plan["fat"].sum()
-        total_cost = best_plan["price"].sum()
+        total_cal = best_plan[column_map["calories"]].sum()
+        total_pro = best_plan[column_map["protein"]].sum()
+        total_fat = best_plan[column_map["fat"]].sum()
+        total_cost = best_plan[column_map["price"]].sum()
 
         st.subheader("📊 Nutrition Summary")
         st.write(f"Total Calories: **{total_cal}** kcal")
