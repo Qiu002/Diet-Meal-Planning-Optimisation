@@ -1,11 +1,11 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
+from pulp import LpProblem, LpVariable, LpMinimize, LpStatus, lpSum, value
 
 st.set_page_config(page_title="Meal Plan Optimizer", page_icon="🥗")
 
-st.title("🥗 Daily Meal Plan Optimizer (Evolution Strategies)")
-st.write("Select a daily meal plan that meets nutritional requirements at the lowest total cost using Evolution Strategies.")
+st.title("🥗 Daily Meal Plan Optimizer")
+st.write("Select a daily meal plan that meets nutritional requirements at the lowest total cost.")
 
 # -----------------------------
 # Load CSV
@@ -18,6 +18,8 @@ except:
 
 st.subheader("📦 Uploaded Dataset")
 st.dataframe(df)
+
+st.write("Detected columns:", list(df.columns))
 
 # -----------------------------
 # USER selects column names
@@ -49,71 +51,37 @@ run_button = st.sidebar.button("Optimize Meal Plan")
 # Filter selection
 # -----------------------------
 filtered_df = df[df[food_col].isin(selected_meals)].reset_index(drop=True)
-n_foods = len(filtered_df)
 
 # -----------------------------
-# Evolution Strategies Optimization
-# -----------------------------
-def fitness(portions):
-    """
-    Fitness function: penalize if nutritional constraints are not met,
-    otherwise return total cost (we want to minimize cost).
-    """
-    calories = np.sum(portions * filtered_df[cal_col].values)
-    protein = np.sum(portions * filtered_df[pro_col].values)
-    fat = np.sum(portions * filtered_df[fat_col].values)
-    cost = np.sum(portions * filtered_df[price_col].values)
-
-    # Penalty if constraints not met
-    penalty = 0
-    if calories < cal_need:
-        penalty += (cal_need - calories) * 10
-    if protein < pro_need:
-        penalty += (pro_need - protein) * 10
-    if fat < fat_need:
-        penalty += (fat_need - fat) * 10
-
-    return cost + penalty
-
-def evolution_strategy(n_generations=500, population_size=50, sigma=0.5, learning_rate=0.1):
-    # Initialize random population (portions)
-    population = np.random.rand(population_size, n_foods) * 2  # portions between 0 and 2
-
-    for generation in range(n_generations):
-        fitness_values = np.array([fitness(ind) for ind in population])
-        # Select top 20% as parents
-        num_parents = max(1, population_size // 5)
-        parents_idx = fitness_values.argsort()[:num_parents]
-        parents = population[parents_idx]
-
-        # Generate new population by adding Gaussian noise to parents
-        new_population = []
-        for _ in range(population_size):
-            parent = parents[np.random.randint(num_parents)]
-            child = parent + np.random.randn(n_foods) * sigma
-            child = np.clip(child, 0, None)  # no negative portions
-            new_population.append(child)
-        population = np.array(new_population)
-
-    # Return the best solution
-    fitness_values = np.array([fitness(ind) for ind in population])
-    best_idx = fitness_values.argmin()
-    return population[best_idx]
-
-# -----------------------------
-# Run optimization
+# OPTIMIZATION
 # -----------------------------
 if run_button:
-    if n_foods == 0:
-        st.error("❌ Please select at least one meal to optimize.")
-    else:
-        with st.spinner("Optimizing meal plan using Evolution Strategies..."):
-            best_portions = evolution_strategy()
 
-        # Prepare results
+    prob = LpProblem("Diet_Optimization", LpMinimize)
+
+    # decision variables (portion amounts)
+    x = LpVariable.dicts("portion", filtered_df.index, lowBound=0)
+
+    # objective function
+    prob += lpSum(filtered_df.loc[i, price_col] * x[i] for i in filtered_df.index)
+
+    # constraints
+    prob += lpSum(filtered_df.loc[i, cal_col] * x[i] for i in filtered_df.index) >= cal_need
+    prob += lpSum(filtered_df.loc[i, pro_col] * x[i] for i in filtered_df.index) >= pro_need
+    prob += lpSum(filtered_df.loc[i, fat_col] * x[i] for i in filtered_df.index) >= fat_need
+
+    prob.solve()
+
+    st.subheader("🧮 Optimization Status")
+    st.write(LpStatus[prob.status])
+
+    if LpStatus[prob.status] != "Optimal":
+        st.error("❌ No feasible solution. Increase food choices or reduce requirements.")
+    else:
         results = []
-        for i, qty in enumerate(best_portions):
-            if qty > 0.01:
+        for i in filtered_df.index:
+            qty = value(x[i])
+            if qty > 0.001:
                 results.append([
                     filtered_df.loc[i, food_col],
                     round(qty, 2),
@@ -139,4 +107,4 @@ if run_button:
         st.write("Protein:", round(result_df["Protein"].sum(), 2), "g")
         st.write("Fat:", round(result_df["Fat"].sum(), 2), "g")
 
-        st.success("🎉 Optimization completed using Evolution Strategies!")
+        st.success("🎉 Interactive optimization completed!")
