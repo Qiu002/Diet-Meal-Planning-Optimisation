@@ -44,9 +44,9 @@ if uploaded_file:
             s_row = data.sample(1).iloc[0]
 
             # Compute total nutrients for the day
-            total_cal = b_row[CAL] + l_row[CAL] + d_row[CAL] + s_row[CAL]
-            total_pro = b_row[PRO] + l_row[PRO] + d_row[PRO] + s_row[PRO]
-            total_fat = b_row[FAT] + l_row[FAT] + d_row[FAT] + s_row[FAT]
+            total_cal = b_row[CAL] 
+            total_pro = b_row[PRO] 
+            total_fat = b_row[FAT] 
 
             # Compute total price
             total_price = b_row[PRICE] + l_row[PRICE] + d_row[PRICE] + s_row[PRICE]
