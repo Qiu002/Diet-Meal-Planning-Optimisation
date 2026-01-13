@@ -25,7 +25,7 @@ if uploaded_file:
     req_fat = st.sidebar.number_input("Maximum Fat (g)", 10, 300, 80)
 
     # ---------------- Evolution Settings ----------------
-    st.sidebar.header("Evolution Strategy Settings")
+    st.sidebar.header("Evolution Strategy Parameters")
     pop_size = st.sidebar.slider("Population Size", 20, 200, 50)
     generations = st.sidebar.slider("Generations", 100, 600, 300)
     mutation_rate = st.sidebar.slider("Mutation Rate", 0.05, 0.5, 0.2)
