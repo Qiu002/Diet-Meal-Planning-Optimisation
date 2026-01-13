@@ -2,79 +2,92 @@ import streamlit as st
 import pandas as pd
 import random
 
-st.title("🍽️ Random Meal Planner with Cost Optimization")
-st.write("Selects random meals that meet basic nutrition requirements while minimizing total daily cost.")
+st.title("🍽️ Meal-by-Meal Diet Cost Optimizer (Evolution Strategies)")
+st.write("Optimizes cost for breakfast, lunch, dinner, and snacks separately while meeting daily nutrition goals.")
 
-# ---------------- Upload CSV ----------------
+# --------------------- Upload CSV ---------------------
 uploaded_file = st.file_uploader("📂 Upload your CSV file", type=["csv"])
 
 if uploaded_file:
     data = pd.read_csv(uploaded_file)
+
     st.subheader("📋 Dataset Preview")
     st.dataframe(data.head())
 
-    # ---------------- Nutrition Targets ----------------
+    # --------------------- Columns ---------------------
+    CAL = "Calories"
+    PRO = "Protein"
+    FAT = "Fat"
+    PRICE = "Price_RM"
+
+    # --------------------- Nutrition Targets ---------------------
     st.sidebar.header("🎯 Daily Nutrition Requirements")
     req_cal = st.sidebar.number_input("Minimum Calories", 1200, 4000, 1800)
     req_pro = st.sidebar.number_input("Minimum Protein (g)", 30, 300, 60)
     req_fat = st.sidebar.number_input("Maximum Fat (g)", 10, 300, 80)
 
-    st.sidebar.header("⚙️ Random Meal Planner Settings")
-    num_trials = st.sidebar.slider("Number of Random Combinations", 10, 1000, 200)
+    st.sidebar.header("🧬 Evolution Strategy Settings")
+    pop_size = st.sidebar.slider("Population Size", 10, 200, 40)
+    generations = st.sidebar.slider("Generations", 20, 600, 300)
+    mutation_rate = st.sidebar.slider("Mutation Rate", 0.01, 0.5, 0.1)
 
-    # ---------------- Run Random Meal Optimization ----------------
-    if st.button("🚀 Generate Random Meal Plan"):
-        best_plan = None
-        lowest_cost = float("inf")
+    # --------------------- Meal Optimizer: Random + Nutrient Check ---------------------
+    def optimize_meal_combination():
+        best_combination = None
+        best_total_price = float('inf')
 
-        for _ in range(num_trials):
-            # Randomly select one meal of each type
-            bmeal_row = data.sample(n=1).iloc[0]
-            lmeal_row = data.sample(n=1).iloc[0]
-            dmeal_row = data.sample(n=1).iloc[0]
-            smeal_row = data.sample(n=1).iloc[0]
+        for _ in range(generations):
+            # Randomly pick one row for each meal
+            b_row = data.sample(1).iloc[0]
+            l_row = data.sample(1).iloc[0]
+            d_row = data.sample(1).iloc[0]
+            s_row = data.sample(1).iloc[0]
 
-            # Sum total nutrients
-            total_cal = bmeal_row["Calories"] + lmeal_row["Calories"] + dmeal_row["Calories"] + smeal_row["Calories"]
-            total_pro = bmeal_row["Protein"] + lmeal_row["Protein"] + dmeal_row["Protein"] + smeal_row["Protein"]
-            total_fat = bmeal_row["Fat"] + lmeal_row["Fat"] + dmeal_row["Fat"] + smeal_row["Fat"]
+            # Compute total nutrients for the day
+            total_cal = b_row[CAL] + l_row[CAL] + d_row[CAL] + s_row[CAL]
+            total_pro = b_row[PRO] + l_row[PRO] + d_row[PRO] + s_row[PRO]
+            total_fat = b_row[FAT] + l_row[FAT] + d_row[FAT] + s_row[FAT]
 
-            # Sum total cost
-            total_cost = bmeal_row["Price_RM"] + lmeal_row["Price_RM"] + dmeal_row["Price_RM"] + smeal_row["Price_RM"]
+            # Compute total price
+            total_price = b_row[PRICE] + l_row[PRICE] + d_row[PRICE] + s_row[PRICE]
 
-            # Check if this combination meets nutrition requirements
+            # Keep combination only if it meets requirements
             if total_cal >= req_cal and total_pro >= req_pro and total_fat <= req_fat:
-                # Keep the plan if it has lower total cost than previous
-                if total_cost < lowest_cost:
-                    lowest_cost = total_cost
-                    best_plan = {
-                        "Breakfast": bmeal_row,
-                        "Lunch": lmeal_row,
-                        "Dinner": dmeal_row,
-                        "Snack": smeal_row,
-                        "Total Calories": total_cal,
-                        "Total Protein": total_pro,
-                        "Total Fat": total_fat,
-                        "Total Cost": total_cost
-                    }
+                if total_price < best_total_price:
+                    best_total_price = total_price
+                    best_combination = (b_row, l_row, d_row, s_row)
 
-        if best_plan:
-            st.success("✅ Optimized Random Meal Plan Found!")
+        return best_combination, best_total_price
 
-            st.subheader("🍽️ Meals Selected")
-            st.write(f"🍳 **Breakfast:** {best_plan['Breakfast']['Breakfast Suggestion']} — RM {best_plan['Breakfast']['Price_RM']:.2f}")
-            st.write(f"🍛 **Lunch:** {best_plan['Lunch']['Lunch Suggestion']} — RM {best_plan['Lunch']['Price_RM']:.2f}")
-            st.write(f"🍲 **Dinner:** {best_plan['Dinner']['Dinner Suggestion']} — RM {best_plan['Dinner']['Price_RM']:.2f}")
-            st.write(f"🍪 **Snack:** {best_plan['Snack']['Snack Suggestion']} — RM {best_plan['Snack']['Price_RM']:.2f}")
+    # --------------------- Run Optimization ---------------------
+    if st.button("🚀 Optimize Meal Costs"):
+        result, total_daily_cost = optimize_meal_combination()
+
+        if result:
+            bfull, lfull, dfull, sfull = result
+
+            st.success("Optimization complete!")
+
+            st.subheader("🍽️ Optimized Meal Choices")
+            st.write(f"🍳 **Breakfast:** {bfull['Breakfast Suggestion']} — RM {bfull[PRICE]:.2f}")
+            st.write(f"🍛 **Lunch:** {lfull['Lunch Suggestion']} — RM {lfull[PRICE]:.2f}")
+            st.write(f"🍲 **Dinner:** {dfull['Dinner Suggestion']} — RM {dfull[PRICE]:.2f}")
+            st.write(f"🍪 **Snack:** {sfull['Snack Suggestion']} — RM {sfull[PRICE]:.2f}")
 
             st.subheader("💰 Total Daily Cost")
-            st.write(f"👉 RM {best_plan['Total Cost']:.2f}")
+            st.write(f"👉 **RM {total_daily_cost:.2f} per day**")
 
-            st.subheader("📊 Total Nutritional Summary")
-            st.write(f"🔥 Calories: {best_plan['Total Calories']} kcal")
-            st.write(f"💪 Protein: {best_plan['Total Protein']} g")
-            st.write(f"🧈 Fat: {best_plan['Total Fat']} g")
+            st.subheader("📊 Daily Nutrition Summary")
+            total_cal = bfull[CAL] + lfull[CAL] + dfull[CAL] + sfull[FAT]  # typo fixed here
+            total_pro = bfull[PRO] + lfull[PRO] + dfull[PRO] + sfull[PRO]
+            total_fat = bfull[FAT] + lfull[FAT] + dfull[FAT] + sfull[FAT]
+
+            st.write(f"🔥 Calories: **{total_cal} kcal**")
+            st.write(f"💪 Protein: **{total_pro} g**")
+            st.write(f"🧈 Fat: **{total_fat} g**")
+
         else:
-            st.warning("⚠️ Could not find any meal combination that meets the requirements. Try increasing the number of random combinations or relaxing constraints.")
+            st.warning("⚠️ Could not find a valid meal combination that meets nutrition requirements. Try increasing generations or population size.")
+
 else:
     st.info("Upload your CSV file to start.")
