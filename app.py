@@ -17,13 +17,7 @@ if uploaded_file:
     CAL = "Calories"
     PRO = "Protein"
     FAT = "Fat"
-
-    PRICE_MAP = {
-        "Breakfast Suggestion": "Breakfast_Price_RM",
-        "Lunch Suggestion": "Lunch_Price_RM",
-        "Dinner Suggestion": "Dinner_Price_RM",
-        "Snack Suggestion": "Snack_Price_RM"
-    }
+    PRICE = "Price_RM"
 
     # ---------------- Nutrition Targets ----------------
     st.sidebar.header("🎯 Daily Nutrition Requirements")
@@ -38,32 +32,27 @@ if uploaded_file:
 
     # --------- Evolution Strategy for single meal ----------
     def optimize_meal(meal_column):
-    price_column = PRICE_MAP[meal_column]
-    n = len(data)
-    population = [random.randrange(n) for _ in range(pop_size)]
+        n = len(data)
+        population = [random.randrange(n) for _ in range(pop_size)]
 
-    for _ in range(generations):
-        offspring = []
+        for _ in range(generations):
+            offspring = []
 
-        for parent in population:
-            child = parent
-            if random.random() < mutation_rate:
-                child = random.randrange(n)
-            offspring.append(child)
+            for parent in population:
+                child = parent
+                if random.random() < mutation_rate:
+                    child = random.randrange(n)
+                offspring.append(child)
 
-        combined = population + offspring
+            combined = population + offspring
 
-        # sort by MEAL-SPECIFIC price
-        combined = sorted(combined, key=lambda i: data.loc[i, price_column])
+            # sort by price only FOR THIS MEAL
+            combined = sorted(combined, key=lambda i: data.loc[i, PRICE])
 
-        population = combined[:pop_size]
+            population = combined[:pop_size]
 
-    best_index = population[0]
-    return (
-        data.loc[best_index, meal_column],
-        data.loc[best_index, price_column],
-        data.loc[best_index]
-    )
+        best_index = population[0]
+        return data.loc[best_index, meal_column], data.loc[best_index, PRICE], data.loc[best_index]
 
     if st.button("🚀 Optimize Meal Costs"):
         # optimize each meal suggestion independently
