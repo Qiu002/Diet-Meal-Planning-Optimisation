@@ -1,9 +1,11 @@
 import streamlit as st
 import pandas as pd
 import random
+import numpy as np
 
+# ---------------- App Title ----------------
 st.title("🍽️ Meal-by-Meal Diet Cost Optimizer (Evolution Strategies)")
-st.write("Optimizes cost for breakfast, lunch, dinner, and snacks separately while meeting daily nutrition goals.")
+st.write("Optimizes daily meal plans at the lowest cost while meeting nutrition requirements.")
 
 uploaded_file = st.file_uploader("📂 Upload your CSV file", type=["csv"])
 
@@ -13,7 +15,7 @@ if uploaded_file:
     st.subheader("📋 Dataset Preview")
     st.dataframe(data.head())
 
-    # Column names based on your dataset
+    # Column names (adjust only if your CSV differs)
     CAL = "Calories"
     PRO = "Protein"
     FAT = "Fat"
@@ -25,67 +27,87 @@ if uploaded_file:
     req_pro = st.sidebar.number_input("Minimum Protein (g)", 30, 300, 60)
     req_fat = st.sidebar.number_input("Maximum Fat (g)", 10, 300, 80)
 
+    # ---------------- Evolution Settings ----------------
     st.sidebar.header("🧬 Evolution Strategy Settings")
-    pop_size = st.sidebar.slider("Population Size", 10, 200, 40)
-    generations = st.sidebar.slider("Generations", 20, 600, 300)
-    mutation_rate = st.sidebar.slider("Mutation Rate", 0.01, 0.5, 0.1)
+    pop_size = st.sidebar.slider("Population Size", 20, 200, 50)
+    generations = st.sidebar.slider("Generations", 100, 600, 300)
+    mutation_rate = st.sidebar.slider("Mutation Rate", 0.05, 0.5, 0.2)
 
-    # --------- Evolution Strategy for single meal ----------
-    def optimize_meal(meal_column):
+    # ---------------- Fitness Function ----------------
+    def fitness(solution):
+        meals = data.loc[solution]
+
+        total_cost = meals[PRICE].sum()
+        total_cal = meals[CAL].sum()
+        total_pro = meals[PRO].sum()
+        total_fat = meals[FAT].sum()
+
+        penalty = 0
+
+        if total_cal < req_cal:
+            penalty += (req_cal - total_cal) * 0.05
+        if total_pro < req_pro:
+            penalty += (req_pro - total_pro) * 0.1
+        if total_fat > req_fat:
+            penalty += (total_fat - req_fat) * 0.1
+
+        return total_cost + penalty
+
+    # ---------------- Evolution Strategy ----------------
+    def evolve_meal_plan():
         n = len(data)
-        population = [random.randrange(n) for _ in range(pop_size)]
+
+        population = [
+            np.random.randint(0, n, size=4)
+            for _ in range(pop_size)
+        ]
 
         for _ in range(generations):
             offspring = []
 
             for parent in population:
-                child = parent
-                if random.random() < mutation_rate:
-                    child = random.randrange(n)
+                child = parent.copy()
+                for i in range(4):
+                    if random.random() < mutation_rate:
+                        child[i] = random.randrange(n)
                 offspring.append(child)
 
             combined = population + offspring
-
-            # sort by price only FOR THIS MEAL
-            combined = sorted(combined, key=lambda i: data.loc[i, PRICE])
+            combined.sort(key=fitness)
 
             population = combined[:pop_size]
 
-        best_index = population[0]
-        return data.loc[best_index, meal_column], data.loc[best_index, PRICE], data.loc[best_index]
+        return population[0]
 
+    # ---------------- Optimization Button ----------------
     if st.button("🚀 Optimize Meal Costs"):
-        # optimize each meal suggestion independently
-        bmeal, bprice, bfull = optimize_meal("Breakfast Suggestion")
-        lmeal, lprice, lfull = optimize_meal("Lunch Suggestion")
-        dmeal, dprice, dfull = optimize_meal("Dinner Suggestion")
-        smeal, sprice, sfull = optimize_meal("Snack Suggestion")
+        best_solution = evolve_meal_plan()
+        meals = data.loc[best_solution].reset_index(drop=True)
 
         st.success("Optimization complete!")
 
         st.subheader("🍽️ Optimized Meal Choices")
 
-        st.write(f"🍳 **Breakfast:** {bmeal} — RM {bprice:.2f}")
-        st.write(f"🍛 **Lunch:** {lmeal} — RM {lprice:.2f}")
-        st.write(f"🍲 **Dinner:** {dmeal} — RM {dprice:.2f}")
-        st.write(f"🍪 **Snack:** {smeal} — RM {sprice:.2f}")
+        st.write(f"🍳 **Breakfast:** {meals.loc[0, 'Breakfast Suggestion']} — RM {meals.loc[0, PRICE]:.2f}")
+        st.write(f"🍛 **Lunch:** {meals.loc[1, 'Lunch Suggestion']} — RM {meals.loc[1, PRICE]:.2f}")
+        st.write(f"🍲 **Dinner:** {meals.loc[2, 'Dinner Suggestion']} — RM {meals.loc[2, PRICE]:.2f}")
+        st.write(f"🍪 **Snack:** {meals.loc[3, 'Snack Suggestion']} — RM {meals.loc[3, PRICE]:.2f}")
 
-        total_daily_cost = bprice + lprice + dprice + sprice
+        # ---------------- Totals ----------------
+        total_cost = meals[PRICE].sum()
+        total_cal = meals[CAL].sum()
+        total_pro = meals[PRO].sum()
+        total_fat = meals[FAT].sum()
 
         st.subheader("💰 Total Daily Cost")
-        st.write(f"👉 **RM {total_daily_cost:.2f} per day**")
-
-        # total nutrients
-        total_cal = bfull[CAL]
-        total_pro = bfull[PRO]
-        total_fat = bfull[FAT]
+        st.write(f"👉 **RM {total_cost:.2f} per day**")
 
         st.subheader("📊 Daily Nutrition Summary")
-        st.write(f"🔥 Calories: **{total_cal} kcal**")
-        st.write(f"💪 Protein: **{total_pro} g**")
-        st.write(f"🧈 Fat: **{total_fat} g**")
+        st.write(f"🔥 Calories: **{total_cal:.0f} kcal**")
+        st.write(f"💪 Protein: **{total_pro:.1f} g**")
+        st.write(f"🧈 Fat: **{total_fat:.1f} g**")
 
-        # warnings if not met
+        # ---------------- Warnings ----------------
         if total_cal < req_cal:
             st.warning("⚠️ Calories requirement NOT met")
         if total_pro < req_pro:
@@ -94,4 +116,4 @@ if uploaded_file:
             st.warning("⚠️ Fat limit exceeded")
 
 else:
-    st.info("Upload your CSV file to start.")
+    st.info("📂 Upload your CSV file to begin optimization.")
