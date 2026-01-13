@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
 import random
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet
 import matplotlib.pyplot as plt
 
 st.title("🍽️ Smart Diet Meal Optimizer")
@@ -168,7 +166,3 @@ if st.button("🚀 Optimize Meal Plan"):
             story.append(Paragraph(f"Calories: {row[CAL]} kcal", styles['Normal']))
             story.append(Paragraph(f"Price: RM {row[PRICE]:.2f}", styles['Normal']))
             story.append(Spacer(1, 12))
-
-        doc.build(story)
-        with open(file_path, "rb") as f:
-            st.download_button("Download PDF", f, file_name="meal_plan.pdf")
